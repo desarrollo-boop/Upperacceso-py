@@ -1,3 +1,37 @@
+import re
+import unicodedata
+
+
+def normalizar_texto(texto):
+
+    if not texto:
+        return ""
+
+    texto = texto.strip()
+
+    texto = unicodedata.normalize(
+        "NFD",
+        texto
+    )
+
+    texto = "".join(
+        c for c in texto
+        if unicodedata.category(c) != "Mn"
+    )
+
+    texto = re.sub(
+        r"\s+",
+        " ",
+        texto
+    )
+
+    return texto.upper().strip()
+
+
+# =========================================================
+# EMPRESA
+# =========================================================
+
 def obtener_empresa(datos):
 
     if not datos:
@@ -10,94 +44,146 @@ def obtener_empresa(datos):
 
     for d in datos:
 
-        texto = d["texto"].strip()
-        texto_upper = texto.upper()
+        texto = normalizar_texto(
+            d["texto"]
+        )
 
-        if "ABFORTI" in texto_upper or "AB FORTI" in texto_upper:
+        if (
+            "ABFORTI" in texto
+            or "AB FORTI" in texto
+        ):
             return "ABFORTI"
 
-        if "INNOVET" in texto_upper:
+        if "INNOVET" in texto:
             return "INNOVET"
 
-        if "UPPER" in texto_upper:
+        if "UPPER" in texto:
             return "UPPER"
 
-    # Respaldo
-    return datos[0]["texto"].strip()
+    return ""
 
 
-def obtener_nombre(datos):
+# =========================================================
+# COMPROBAR SI ES EMPRESA / LOGO
+# =========================================================
 
-    if not datos:
-        return ""
+def es_empresa_o_logo(texto):
 
-    datos = sorted(
-        datos,
-        key=lambda d: d["y"]
+    texto = normalizar_texto(
+        texto
     )
 
-    candidatos = []
+    if (
+        "ABFORTI" in texto
+        or "AB FORTI" in texto
+        or "INNOVET" in texto
+        or "UPPER" in texto
+        or "LOGISTICS" in texto
+        or "LOGISTIC" in texto
+    ):
+        return True
 
-    for i, d in enumerate(datos):
-
-        texto = d["texto"].strip()
-
-        if not texto:
-            continue
-
-        texto_upper = texto.upper()
-
-
-        # ==========================
-        # IGNORAR EMPRESA
-        # ==========================
-
-        if (
-            "ABFORTI" in texto_upper
-            or "AB FORTI" in texto_upper
-            or "INNOVET" in texto_upper
-            or "UPPER" in texto_upper
-        ):
-            continue
+    return False
 
 
-        # ==========================
-        # IGNORAR SLOGAN
-        # ==========================
+# =========================================================
+# SLOGAN
+# =========================================================
 
-        if (
-            "LO CREASTE" in texto_upper
-            or "PROTEGEMOS" in texto_upper
-        ):
-            continue
+def es_slogan(texto):
 
+    texto = normalizar_texto(
+        texto
+    )
 
-        # ==========================
-        # IGNORAR ÚLTIMA LÍNEA
-        # Departamento / puesto
-        # ==========================
+    if (
+        "LO CREASTE" in texto
+        or "PROTEGEMOS" in texto
+        or "CREASTE" in texto
+    ):
+        return True
 
-        if i == len(datos) - 1:
-            continue
-
-
-        candidatos.append(texto)
+    return False
 
 
-    print("CANDIDATOS DE NOMBRE:")
-    print(candidatos)
+# =========================================================
+# RUIDO
+# =========================================================
+
+def es_ruido(texto):
+
+    texto = normalizar_texto(
+        texto
+    )
+
+    if not texto:
+        return True
+
+    # Ejemplos:
+    # 0
+    # |
+    # .
+    # -
+    if len(texto) <= 1:
+        return True
+
+    if re.fullmatch(
+        r"[\d\W_]+",
+        texto
+    ):
+        return True
+
+    return False
 
 
-    if not candidatos:
-        return ""
+# =========================================================
+# DETECTAR CARGO / DEPARTAMENTO
+# =========================================================
+
+def es_departamento(texto):
+
+    texto = normalizar_texto(
+        texto
+    )
+
+    palabras = [
+
+        # INNOVET
+        "ING ",
+        "ING.",
+        "DESARROLLO",
+        "COMERCIAL",
+
+        # ABFORTI
+        "TECNOLOG",
+        "INFORMACION",
+
+        # UPPER
+        "GESTION",
+        "CAPITAL HUMANO",
+
+        # Otros posibles cargos
+        "ADMINISTRACION",
+        "RECURSOS HUMANOS",
+        "SISTEMAS",
+        "VENTAS",
+        "OPERACIONES",
+        "LOGISTICA",
+        "FINANZAS",
+        "CONTABILIDAD"
+    ]
+
+    for palabra in palabras:
+
+        if palabra in texto:
+            return True
+
+    return False
 
 
-    # El nombre puede venir dividido
-    # en una o dos líneas
-    nombre = " ".join(candidatos)
-
-    return nombre.strip()
-
+# =========================================================
+# DEPARTAMENTO
+# =========================================================
 
 def obtener_departamento(datos):
 
@@ -109,4 +195,166 @@ def obtener_departamento(datos):
         key=lambda d: d["y"]
     )
 
-    return datos[-1]["texto"].strip()
+    candidatos = []
+
+    for d in datos:
+
+        texto = d["texto"].strip()
+
+        if not texto:
+            continue
+
+        if es_empresa_o_logo(texto):
+            continue
+
+        if es_slogan(texto):
+            continue
+
+        if es_ruido(texto):
+            continue
+
+        if es_departamento(texto):
+
+            candidatos.append(d)
+
+    if not candidatos:
+        return ""
+
+    # Si hubo varias lecturas relacionadas
+    # con cargo, usamos la última.
+    candidatos = sorted(
+        candidatos,
+        key=lambda d: d["y"]
+    )
+
+    return candidatos[-1]["texto"].strip()
+
+
+# =========================================================
+# NOMBRE
+# =========================================================
+
+def obtener_nombre(datos):
+
+    if not datos:
+        return ""
+
+    datos = sorted(
+        datos,
+        key=lambda d: d["y"]
+    )
+
+    departamento = obtener_departamento(
+        datos
+    )
+
+    y_departamento = None
+
+    if departamento:
+
+        departamento_normalizado = (
+            normalizar_texto(
+                departamento
+            )
+        )
+
+        for d in datos:
+
+            if (
+                normalizar_texto(
+                    d["texto"]
+                )
+                ==
+                departamento_normalizado
+            ):
+
+                y_departamento = d["y"]
+
+                break
+
+
+    candidatos = []
+
+
+    for d in datos:
+
+        texto = d["texto"].strip()
+
+        if not texto:
+            continue
+
+
+        # --------------------------
+        # EMPRESA / LOGO
+        # --------------------------
+
+        if es_empresa_o_logo(texto):
+            continue
+
+
+        # --------------------------
+        # SLOGAN
+        # --------------------------
+
+        if es_slogan(texto):
+            continue
+
+
+        # --------------------------
+        # RUIDO
+        # --------------------------
+
+        if es_ruido(texto):
+            continue
+
+
+
+        if es_departamento(texto):
+            continue
+
+        if (
+            y_departamento is not None
+            and d["y"] >= y_departamento
+        ):
+            continue
+
+
+        candidatos.append(d)
+
+
+    if not candidatos:
+        return ""
+
+
+    candidatos = sorted(
+        candidatos,
+        key=lambda d: d["y"]
+    )
+
+
+    if len(candidatos) > 2:
+
+        candidatos = candidatos[-2:]
+
+
+    lineas_nombre = [
+
+        d["texto"].strip()
+
+        for d in candidatos
+
+    ]
+
+
+    print(
+        "CANDIDATOS DE NOMBRE:",
+        lineas_nombre
+    )
+
+
+    nombre = " ".join(
+        lineas_nombre
+    )
+
+
+    return nombre.strip()

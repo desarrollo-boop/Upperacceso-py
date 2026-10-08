@@ -13,6 +13,7 @@ def extraer(datos):
         "numero_documento": "",
         "ruta_imagen": "",
         "empresa": empresa,
+        "nombre_completo": nombre,
         "nombres": "",
         "apellido_paterno": "",
         "apellido_materno": "",

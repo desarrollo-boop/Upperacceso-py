@@ -109,7 +109,6 @@ def video():
     if not abrir_camara():
         return ("No fue posible abrir la cámara.", 500)
     return Response(generar_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
- 
 def datos_validados(datos, tipo):
     if not datos:
         return False
@@ -124,15 +123,17 @@ def datos_validados(datos, tipo):
             return True
         return False
     if tipo == "TRABAJO":
+        nombre_completo = str(datos.get("nombre_completo", "")).strip()
         nombres = str(datos.get("nombres", "")).strip()
         apellido_paterno = str(datos.get("apellido_paterno", "")).strip()
         apellido_materno = str(datos.get("apellido_materno", "")).strip()
         empresa = str(datos.get("empresa", "")).strip()
+        if(nombre_completo and empresa):
+            return True
         if (nombres and apellido_paterno and apellido_materno and empresa):
             return True
         return False
     return False
-
 def evaluar_acceso(datos):
     try:
         respuesta = requests.post(
