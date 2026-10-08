@@ -28,10 +28,6 @@ def normalizar_texto(texto):
     return texto.upper().strip()
 
 
-# =========================================================
-# EMPRESA
-# =========================================================
-
 def obtener_empresa(datos):
 
     if not datos:
@@ -63,10 +59,6 @@ def obtener_empresa(datos):
     return ""
 
 
-# =========================================================
-# COMPROBAR SI ES EMPRESA / LOGO
-# =========================================================
-
 def es_empresa_o_logo(texto):
 
     texto = normalizar_texto(
@@ -85,11 +77,6 @@ def es_empresa_o_logo(texto):
 
     return False
 
-
-# =========================================================
-# SLOGAN
-# =========================================================
-
 def es_slogan(texto):
 
     texto = normalizar_texto(
@@ -105,11 +92,6 @@ def es_slogan(texto):
 
     return False
 
-
-# =========================================================
-# RUIDO
-# =========================================================
-
 def es_ruido(texto):
 
     texto = normalizar_texto(
@@ -119,11 +101,7 @@ def es_ruido(texto):
     if not texto:
         return True
 
-    # Ejemplos:
-    # 0
-    # |
-    # .
-    # -
+
     if len(texto) <= 1:
         return True
 
@@ -135,10 +113,6 @@ def es_ruido(texto):
 
     return False
 
-
-# =========================================================
-# DETECTAR CARGO / DEPARTAMENTO
-# =========================================================
 
 def es_departamento(texto):
 
@@ -181,10 +155,6 @@ def es_departamento(texto):
     return False
 
 
-# =========================================================
-# DEPARTAMENTO
-# =========================================================
-
 def obtener_departamento(datos):
 
     if not datos:
@@ -220,8 +190,6 @@ def obtener_departamento(datos):
     if not candidatos:
         return ""
 
-    # Si hubo varias lecturas relacionadas
-    # con cargo, usamos la última.
     candidatos = sorted(
         candidatos,
         key=lambda d: d["y"]
@@ -229,10 +197,6 @@ def obtener_departamento(datos):
 
     return candidatos[-1]["texto"].strip()
 
-
-# =========================================================
-# NOMBRE
-# =========================================================
 
 def obtener_nombre(datos):
 
@@ -292,17 +256,10 @@ def obtener_nombre(datos):
             continue
 
 
-        # --------------------------
-        # SLOGAN
-        # --------------------------
 
         if es_slogan(texto):
             continue
 
-
-        # --------------------------
-        # RUIDO
-        # --------------------------
 
         if es_ruido(texto):
             continue
